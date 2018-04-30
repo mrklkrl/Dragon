@@ -1,0 +1,155 @@
+
+<html>
+  <head>
+      <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+  
+     <script type= "text/javascript" src="webgl-utils.js"> </script>
+     <script type= "text/javascript" src="webgl-debug.js"> </script>
+     <script type= "text/javascript" src="cuon-matrix.js"> </script>
+     <script type= "text/javascript" src="cuon-utils.js"> </script>
+     <script type= "text/javascript" src="demon.js"> </script>
+     <script type= "text/javascript" src="dragon.js"> </script>
+  </head>
+  <body onload="init()" style="background-color:black;">
+      <style>
+          body{
+            font-family: 'Roboto', sans-serif;  
+            background: black;
+            color: white;
+          }
+        </style>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      precision mediump float;
+      
+      uniform mat4 modelMatrix;
+      uniform mat4 viewMatrix;
+      uniform mat4 projectionMatrix;
+      uniform vec4 lightPosition;
+      
+      attribute vec4 vertexPosition;
+      attribute vec3 vertexNormal;
+      
+      varying vec3 fragmentNormal;
+      varying vec3 fragmentLight;
+      varying vec3 fragmentView;
+      
+      varying vec4 fragmentPosition;
+      
+      void main() {
+        mat4 modelViewMatrix = viewMatrix * modelMatrix;
+        
+        vec4 p = modelViewMatrix * vertexPosition;
+        vec4 q = viewMatrix * lightPosition;
+        
+        fragmentNormal = normalize(mat3(modelViewMatrix)*vertexNormal);
+        fragmentLight = normalize(vec3(q-p));
+        fragmentView = normalize(vec3(-p));
+        
+        fragmentPosition = vertexPosition;
+        
+        
+        gl_Position = projectionMatrix * modelViewMatrix * vertexPosition;
+      }
+    </script>
+    <script id="lightingFragmentShader" type="x-shader/x-fragment">
+      precision mediump float;
+      
+      varying vec3 fragmentNormal;
+      varying vec3 fragmentLight;
+      varying vec3 fragmentView;
+      
+      uniform vec3 modelColor;
+      uniform vec3 lightColor;
+      void main(){
+      vec3 fragmentColor;
+      
+      vec3 n = normalize(fragmentNormal);
+      vec3 l = normalize(fragmentLight);
+      vec3 v = normalize(fragmentView);
+      vec3 h = normalize(l+v);
+      
+      float d = max((dot(l,n)),(0.0)); 
+      float s = pow(max((dot(h,n)),(0.0)), (5.0));
+      
+      fragmentColor = modelColor * lightColor * d + lightColor * s;
+       gl_FragColor = vec4(fragmentColor, 1.0);
+      }
+    </script>
+    <script id="goochFragmentShader" type="x-shader/x-fragment">
+      precision mediump float;
+      
+      varying vec3 fragmentNormal;
+      varying vec3 fragmentLight;
+      varying vec3 fragmentView;
+      
+      uniform vec3 modelColor;
+      uniform vec3 lightColor;
+      void main(){
+      vec3 fragmentColor;
+      
+      vec3 n = normalize(fragmentNormal);
+      vec3 l = normalize(fragmentLight);
+      vec3 v = normalize(fragmentView);
+      vec3 h = normalize(l+v);
+      
+      float kg = max(dot(n,v),0.0); 
+      
+      fragmentColor = mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), float(kg));
+      gl_FragColor = vec4(fragmentColor, 1.0);
+      }
+    </script>
+    <script id="rainbowFragmentShader" type="x-shader/x-fragment">
+      precision mediump float;
+      
+      varying vec3 fragmentNormal;
+      varying vec3 fragmentLight;
+      varying vec3 fragmentView;
+      
+      varying vec4 fragmentPosition;
+      
+      uniform vec3 modelColor;
+      uniform vec3 lightColor;
+      void main(){
+      vec3 fragmentColor;
+      vec3 modelColor;
+      
+      vec3 n = normalize(fragmentNormal);
+      vec3 l = normalize(fragmentLight);
+      vec3 v = normalize(fragmentView);
+      vec3 h = normalize(l+v);
+      
+      if(fragmentPosition.y > 0.84)
+        modelColor = vec3(0.0,1.0,0.0);
+      else if(fragmentPosition.y > 0.68)
+        modelColor = vec3(0.7,0.8,0.0);
+      else if(fragmentPosition.y > 0.52)
+        modelColor = vec3(0.8,0.5,0.0);
+      else if(fragmentPosition.y > 0.36)
+        modelColor = vec3(1.0,0.0,0.0);
+      else if(fragmentPosition.y > 0.2)
+        modelColor = vec3(0.8,0.0,0.7);
+      else
+        modelColor = vec3(0.0,0.0,1.0);
+      float d = max((dot(l,n)),(0.0)); 
+      
+      fragmentColor = modelColor;
+      gl_FragColor = vec4(fragmentColor, 1.0);
+      }
+    </script>
+    <div class="container">
+        <h1>Alduin - A study of light reflection and 3d Modeling in WebGl</h1>
+        <h2>By Mike Cole - November 2016</h2>
+        <h3>Click and drag with mouse to see the dragon from different angles!</h3>
+        <div class="row">
+          <div class="col-xs-12">
+              <canvas id="webgl" width="960px" height="960px" style="background:url(background.jpg); background-size: 960px 960px; margin-left:auto; margin-right:auto; display:block;">
+                  This content requires <a href="http://get.webgl.org/">WebGL</a>.
+          </div>       
+        </div>
+      </div>
+    </canvas>
+  </body>
+</html>
